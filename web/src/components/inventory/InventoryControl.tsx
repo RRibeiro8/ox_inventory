@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { selectItemAmount, setItemAmount } from '../../store/inventory';
+import { selectItemAmount, setItemAmount, selectLeftInventory } from '../../store/inventory';
 import { DragSource } from '../../typings';
 import { onUse } from '../../dnd/onUse';
 import { onGive } from '../../dnd/onGive';
@@ -15,7 +15,20 @@ const countDigitsBefore = (s: string, index: number) => digitsOnly(s.substring(0
 
 const InventoryControl: React.FC = () => {
   const itemAmount = useAppSelector(selectItemAmount);
+  const leftInventory = useAppSelector(selectLeftInventory);
   const dispatch = useAppDispatch();
+
+  /* Largest stack the player is carrying. It is the only honest ceiling this
+   * component has: the amount is not tied to one slot, and onDrop/onBuy clamp
+   * it to the source stack anyway - `amount === 0 || amount > count` both take
+   * the whole stack. So a full bar means "every transfer takes the lot". */
+  const maxCount = React.useMemo(
+    () => leftInventory.items.reduce((max, item) => (item?.count && item.count > max ? item.count : max), 0),
+    [leftInventory.items]
+  );
+
+  // 0 means "all", so it fills the bar rather than emptying it
+  const fillRatio = maxCount === 0 ? 0 : itemAmount === 0 ? 1 : Math.min(1, itemAmount / maxCount);
 
   const [infoVisible, setInfoVisible] = useState(false);
   const [value, setValue] = useState(formatAmount(itemAmount));
@@ -92,29 +105,37 @@ const InventoryControl: React.FC = () => {
       <div className="inventory-control">
         <div className="inventory-control-wrapper">
           <div className="inventory-control-stepper">
-            <button
-              className="inventory-control-step inventory-control-step-down"
-              type="button"
-              tabIndex={-1}
-              aria-label="decrease"
-              onClick={() => step(-1)}
-            />
-            <input
-              className="inventory-control-input"
-              type="text"
-              ref={inputRef}
-              value={value}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              min={0}
-            />
-            <button
-              className="inventory-control-step inventory-control-step-up"
-              type="button"
-              tabIndex={-1}
-              aria-label="increase"
-              onClick={() => step(1)}
-            />
+            <div className="inventory-control-stepper-row">
+              <button
+                className="inventory-control-step inventory-control-step-down"
+                type="button"
+                tabIndex={-1}
+                aria-label="decrease"
+                onClick={() => step(-1)}
+              />
+              <input
+                className="inventory-control-input"
+                type="text"
+                ref={inputRef}
+                value={value}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                min={0}
+              />
+              <button
+                className="inventory-control-step inventory-control-step-up"
+                type="button"
+                tabIndex={-1}
+                aria-label="increase"
+                onClick={() => step(1)}
+              />
+            </div>
+            <div className="inventory-control-progress" data-full={fillRatio >= 1 || undefined}>
+              <div
+                className="inventory-control-progress-fill"
+                style={{ transform: `scaleX(${fillRatio})` }}
+              />
+            </div>
           </div>
           <button
             className="inventory-control-button inventory-control-use"

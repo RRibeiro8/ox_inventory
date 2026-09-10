@@ -272,7 +272,7 @@ body.inv-dragging {
   // group rather than each part keeps it reading as one control.
   .inventory-control-stepper {
     display: flex;
-    align-items: stretch;
+    flex-direction: column;
     flex: 0 1 17vh;
     min-width: 0;
     height: $btnSize;
@@ -289,6 +289,37 @@ body.inv-dragging {
         inset 0 2px 6px rgba(0, 0, 0, 0.4),
         0 0 18px rgba(0, 229, 255, 0.28);
     }
+  }
+
+  .inventory-control-stepper-row {
+    display: flex;
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  // How much of the largest stack this amount takes. Full means every transfer
+  // takes the whole stack - which is also what 0 ("all") does.
+  .inventory-control-progress {
+    flex: none;
+    height: 3px;
+    margin: 0 1px 1px;
+    background: rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+
+    &[data-full] .inventory-control-progress-fill {
+      background: linear-gradient(to right, $accent, $danger);
+    }
+  }
+
+  .inventory-control-progress-fill {
+    height: 100%;
+    width: 100%;
+    transform-origin: left center;
+    background: linear-gradient(to right, $accent, #7c3aed);
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+    // scaleX animates on the compositor; animating width would force layout
+    transition: transform 140ms ease-out;
   }
 
   .inventory-control-step {
