@@ -1,29 +1,110 @@
-$mainColor: #22232c;
-$textColor: #c1c2c5;
-$mainFont: Roboto;
+// ============================================================================
+//  ox_inventory - River City cyberpunk theme
+//
+//  Rules this follows (see .claude/skills/nui-design):
+//   - The background is live gameplay. Surfaces are near-opaque so text stays
+//     readable over a night alley AND a white desert at noon.
+//   - Sized in vh from one scale, so it holds up 1080p -> 32:9 ultrawide.
+//   - ONE accent (cyan). Magenta is reserved for danger/low durability only.
+//   - Animate transform/opacity only, 120-200ms. backdrop-filter on ONE surface.
+//   - Never pure #000 or #fff.
+//   - JetBrains Mono for all data: monospace = tabular figures, so item counts
+//     and weights do not jitter as they change.
+// ============================================================================
 
-$secondaryColor: rgba(12, 12, 12, 0.4);
-$secondaryColorHighlight: #33343f;
-$secondaryColorLight: rgba(0, 0, 0, 0.5);
-$secondaryColorDark: rgba(12, 12, 12, 0.8);
+@font-face {
+  // Both are VARIABLE fonts - one file covers the whole weight range, so
+  // declaring per-weight faces just ships the same bytes repeatedly.
+  font-family: 'Orbitron';
+  src: url('./fonts/orbitron.woff2') format('woff2');
+  font-weight: 400 900;
+  font-display: block;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./fonts/jetbrains-mono.woff2') format('woff2');
+  font-weight: 100 800;
+  font-display: block;
+}
 
+// ---------------------------------------------------------------- palette ---
+$bg: #0b0e14;
+$surface: rgba(13, 17, 24, 0.94);
+$surfaceSolid: #0d1118;
+$surfaceHi: #151b26;
+$surfaceInset: rgba(8, 11, 17, 0.93);
+
+$text: #e8eaed;
+$textDim: #aab4c6;
+
+$accent: #00e5ff;
+$accentSoft: rgba(0, 229, 255, 0.16);
+$accentLine: rgba(0, 229, 255, 0.35);
+
+$danger: #ff2e6e;
+$warn: #ffb020;
+$ok: #2de38a;
+
+$edge: rgba(255, 255, 255, 0.07);
+$edgeHi: rgba(0, 229, 255, 0.55);
+
+$mainFont: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+$displayFont: 'Orbitron', 'JetBrains Mono', sans-serif;
+
+// kept from upstream - these drive layout, do not restyle away
 $gridCols: 5;
-$gridRows: 5;
-$gridSize: 10.2vh;
-$gridGap: 2px;
+// Visible rows only - the grid still holds whatever the server gives it, the
+// rest scrolls. Two stacked grids at 5 visible rows exceed 100vh.
+$gridRows: 4;
+$gridSize: 8vh;
+$gridGap: 3px;
+// item art and drag ghost scale WITH the slot, or they overflow it
+$iconSize: 5.8vh;
+$logoHeight: 6.2vh;
+$btnSize: 6.2vh;
 $containerSize: calc(#{$gridRows} * #{$gridSize + 0.22vh} + #{$gridRows} * #{$gridGap});
 
+// chamfered corner - the signature cyberpunk shape. Cheap (no repaint cost).
+$chamfer: polygon(0 6px, 6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px));
+
+// static scanline overlay - repeating-linear-gradient is painted once
+@mixin scanlines($opacity: 0.05) {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, $opacity) 0px,
+      rgba(255, 255, 255, $opacity) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+}
+
+@mixin panel {
+  background: $surface;
+  border: 1px solid $edge;
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+// ------------------------------------------------------------------ base ---
 body {
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
-    'Helvetica Neue', sans-serif;
+  font-family: $mainFont;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   height: 100vh;
   background: none !important;
   overflow: hidden !important;
   user-select: none;
+  color: $text;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 #root {
@@ -31,7 +112,7 @@ body {
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-family: $mainFont;
 }
 
 ::-webkit-scrollbar {
@@ -54,44 +135,55 @@ input[type='number']::-webkit-outer-spin-button {
 .app-wrapper {
   height: 100%;
   width: 100%;
-  color: white;
+  color: $text;
 }
 
+// --------------------------------------------------------- context menu ---
 .context-menu-list {
   min-width: 200px;
-  background-color: $mainColor;
-  color: $textColor;
+  @include panel;
+  clip-path: $chamfer;
+  color: $text;
   padding: 4px;
-  border-color: rgba(0, 0, 0, 0.2);
-  border-style: inset;
-  border-width: 1px;
-  border-radius: 4px;
+  border-radius: 0;
   outline: none;
   display: flex;
   flex-direction: column;
 }
 
 .context-menu-item {
-  padding: 8px;
-  border-radius: 4px;
+  padding: 8px 10px;
+  border-radius: 0;
   background-color: transparent;
   outline: none;
   border: none;
-  color: $textColor;
+  border-left: 2px solid transparent;
+  color: $textDim;
+  font-family: $mainFont;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease;
   &:active {
     transform: none;
   }
   &:hover {
-    background-color: $secondaryColorHighlight;
+    background-color: $accentSoft;
+    border-left-color: $accent;
+    color: $text;
     cursor: pointer;
   }
 }
 
 .tooltip-description {
   padding-top: 5px;
+  color: $textDim;
 }
 
 .tooltip-markdown > p {
@@ -99,12 +191,12 @@ input[type='number']::-webkit-outer-spin-button {
 }
 
 button:active {
-  transform: translateY(3px);
+  transform: translateY(1px);
 }
 
 .item-drag-preview {
-  width: 7.7vh;
-  height: 7.7vh;
+  width: $gridSize;
+  height: $gridSize;
   z-index: 1;
   position: fixed;
   pointer-events: none;
@@ -112,10 +204,13 @@ button:active {
   left: 0;
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 7vh;
+  background-size: $iconSize;
   image-rendering: -webkit-optimize-contrast;
   will-change: transform;
   backface-visibility: hidden;
+  clip-path: $chamfer;
+  background-color: $surfaceSolid;
+  box-shadow: 0 0 0 1px $edgeHi, 0 0 18px rgba(0, 229, 255, 0.45);
 }
 
 body.inv-dragging {
@@ -127,78 +222,269 @@ body.inv-dragging {
   }
 }
 
+// -------------------------------------------------------------- layout ----
 .inventory-wrapper {
+  // Stacked and pushed to one side: the centre of the screen stays clear so the
+  // player can still see their character and what is in front of them.
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   height: 100%;
+  gap: 10px;
+  // safe zone - nui-design says keep interactive UI ~5% off the edge
+  padding-left: 5vw;
+  box-sizing: border-box;
 
-  gap: 20px;
 }
 
 .inventory-control {
   display: flex;
+  // Source order is already Left, Control, Right - leaving order alone puts the
+  // buttons BETWEEN the two grids, which is where they belong: equidistant from
+  // both, and they double as a visual divider.
+  width: calc(#{$gridCols} * #{$gridSize} + #{$gridCols - 1} * #{$gridGap});
 
   .inventory-control-wrapper {
     display: flex;
-    flex-direction: column;
-    gap: 20px;
-    justify-content: center;
+    // horizontal here: a vertical button stack would cost the height the
+    // second grid needs
+    flex-direction: row;
+    gap: 6px;
+    justify-content: flex-start;
     align-items: center;
-  }
+    width: 100%;
 
-  .inventory-control-input {
-    transition: 200ms;
-    padding: 16px 8px;
-    border-radius: 2.5%;
-    font-family: $mainFont;
-    font-size: 16px;
-    text-align: center;
-    outline: none;
-    border: none;
-    color: #fff;
-    background-color: $secondaryColor;
-    &:focus-within {
-      background-color: $secondaryColorDark;
+    // Server mark, leading the control row. ::before on a flex container is a
+    // real flex item, so no component change is needed.
+    &::before {
+      content: '';
+      flex: none;
+      height: $logoHeight;
+      width: calc(#{$logoHeight} * 1.11); // source is 178x160
+      background: url('./logo.png') left center / contain no-repeat;
+      filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.35));
+      margin-right: 4px;
     }
   }
 
-  .inventory-control-button {
-    font-size: 14px;
-    color: #fff;
-    background-color: $secondaryColor;
-    transition: 200ms;
-    padding: 12px 8px;
-    border-radius: 2.5%;
+  // The stepper owns the surface; the input inside is bare. Chamfering the
+  // group rather than each part keeps it reading as one control.
+  .inventory-control-stepper {
+    display: flex;
+    align-items: stretch;
+    flex: 0 1 17vh;
+    min-width: 0;
+    height: $btnSize;
+    clip-path: $chamfer;
+    background-color: $surfaceInset;
+    box-shadow:
+      inset 0 0 0 1px $edge,
+      inset 0 2px 6px rgba(0, 0, 0, 0.5);
+    transition: box-shadow 160ms ease;
+
+    &:focus-within {
+      box-shadow:
+        inset 0 0 0 1px $edgeHi,
+        inset 0 2px 6px rgba(0, 0, 0, 0.4),
+        0 0 18px rgba(0, 229, 255, 0.28);
+    }
+  }
+
+  .inventory-control-step {
+    flex: none;
+    width: calc(#{$btnSize} * 0.78);
+    padding: 0;
     border: none;
-    text-transform: uppercase;
-    font-family: $mainFont;
-    width: 100%;
-    font-weight: 500;
+    outline: none;
+    background: transparent;
+    color: $textDim;
+    position: relative;
+    cursor: pointer;
+    transition: color 140ms ease, background-color 140ms ease;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-color: currentColor;
+      -webkit-mask: center / 38% no-repeat var(--icon);
+      mask: center / 38% no-repeat var(--icon);
+    }
+
     &:hover {
-      background-color: $secondaryColorDark;
+      color: $accent;
+      background-color: $accentSoft;
+    }
+    &:active {
+      transform: none;
+    }
+  }
+
+  .inventory-control-step-down {
+    --icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23fff'%20stroke-width='2.4'%20stroke-linecap='round'><path%20d='M5%2012h14'/></svg>");
+  }
+
+  .inventory-control-step-up {
+    --icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23fff'%20stroke-width='2.4'%20stroke-linecap='round'><path%20d='M12%205v14M5%2012h14'/></svg>");
+  }
+
+  .inventory-control-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: $btnSize;
+    box-sizing: border-box;
+    transition: box-shadow 160ms ease, background-color 160ms ease;
+    padding: 0 8px;
+    border-radius: 0;
+    clip-path: $chamfer;
+    font-family: $mainFont;
+    font-size: 15px;
+    font-weight: 700;
+    // a quantity field should read as numeric: right-aligned, tabular, with a
+    // hash affordance on the left so it is obviously a count, not a search box
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    padding: 0 2px;
+    outline: none;
+    border: none;
+    color: $text;
+    caret-color: $accent;
+    background-color: transparent;
+    box-shadow: none;
+
+    &::placeholder {
+      color: $textDim;
+      font-weight: 400;
+    }
+
+    // the stepper wrapper carries the focus ring for the whole group
+  }
+
+  // --- icon buttons -------------------------------------------------------
+  // The labels (Use / Give / Close) are replaced by icons, with the name shown
+  // as a hover tooltip so nothing is lost.
+  //
+  // Targeted by class, not position - our fork adds inventory-control-use /
+  // -give / -close. Adding or reordering a button upstream can no longer put
+  // the wrong icon on the wrong button.
+  .inventory-control-button {
+    position: relative;
+    flex: none;
+    width: $btnSize;
+    height: $btnSize;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0; // hides the text label without removing it from the DOM
+    color: $accent;
+    background-color: $surfaceInset;
+    transition:
+      color 160ms ease,
+      background-color 160ms ease,
+      box-shadow 160ms ease;
+    border-radius: 0;
+    clip-path: $chamfer;
+    border: none;
+    box-shadow: inset 0 0 0 1px $accentLine;
+
+    // the glyph. mask + currentColor so it inherits the hover colour.
+    &::before {
+      content: '';
+      display: block;
+      width: 52%;
+      height: 52%;
+      background-color: currentColor;
+      -webkit-mask: center / contain no-repeat var(--icon);
+      mask: center / contain no-repeat var(--icon);
+    }
+
+    // the tooltip
+    &::after {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%) translateY(2px);
+      padding: 3px 7px;
+      font-family: $mainFont;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      white-space: nowrap;
+      color: $text;
+      background: $surfaceSolid;
+      box-shadow: inset 0 0 0 1px $accentLine;
+      clip-path: $chamfer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 140ms ease, transform 140ms ease;
+    }
+
+    &:hover {
+      background-color: $accentSoft;
+      color: $text;
+      box-shadow: inset 0 0 0 1px $edgeHi, 0 0 16px rgba(0, 229, 255, 0.28);
+      cursor: pointer;
+
+      &::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    // 1 = Use, 2 = Give, 3 = Close  (source order in InventoryControl.tsx)
+    // Use/Give are a deliberate pair: arrow INTO the tray vs OUT of it.
+    &.inventory-control-use {
+      --icon: url("data:image/svg+xml,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20256%20256%22%20fill=%22%23fff%22><path%20d=%22M56%2C76a60%2C60%2C0%2C0%2C1%2C120%2C0%2C8%2C8%2C0%2C0%2C1-16%2C0%2C44%2C44%2C0%2C0%2C0-88%2C0%2C8%2C8%2C0%2C1%2C1-16%2C0Zm140%2C44a27.9%2C27.9%2C0%2C0%2C0-13.36%2C3.39A28%2C28%2C0%2C0%2C0%2C144%2C106.7V76a28%2C28%2C0%2C0%2C0-56%2C0v80l-3.82-6.13a28%2C28%2C0%2C0%2C0-48.41%2C28.17l29.32%2C50A8%2C8%2C0%2C1%2C0%2C78.89%2C220L49.6%2C170a12%2C12%2C0%2C1%2C1%2C20.78-12l.14.23%2C18.68%2C30A8%2C8%2C0%2C0%2C0%2C104%2C184V76a12%2C12%2C0%2C0%2C1%2C24%2C0v68a8%2C8%2C0%2C1%2C0%2C16%2C0V132a12%2C12%2C0%2C0%2C1%2C24%2C0v20a8%2C8%2C0%2C0%2C0%2C16%2C0v-4a12%2C12%2C0%2C0%2C1%2C24%2C0v36c0%2C21.61-7.1%2C36.3-7.16%2C36.42a8%2C8%2C0%2C0%2C0%2C3.58%2C10.73A7.9%2C7.9%2C0%2C0%2C0%2C208%2C232a8%2C8%2C0%2C0%2C0%2C7.16-4.42c.37-.73%2C8.85-18%2C8.85-43.58V148A28%2C28%2C0%2C0%2C0%2C196%2C120Z%22/></svg>");
+      &::after {
+        content: 'USE';
+      }
+    }
+
+    &.inventory-control-give {
+      --icon: url("data:image/svg+xml,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20256%20256%22%20fill=%22%23fff%22><path%20d=%22M128%2C35.31V128a8%2C8%2C0%2C0%2C1-16%2C0V35.31L93.66%2C53.66A8%2C8%2C0%2C0%2C1%2C82.34%2C42.34l32-32a8%2C8%2C0%2C0%2C1%2C11.32%2C0l32%2C32a8%2C8%2C0%2C0%2C1-11.32%2C11.32Zm64%2C88.31V96a16%2C16%2C0%2C0%2C0-16-16H160a8%2C8%2C0%2C0%2C0%2C0%2C16h16v80.4A28%2C28%2C0%2C0%2C0%2C131.75%2C210l.24.38%2C22.26%2C34a8%2C8%2C0%2C0%2C0%2C13.39-8.76l-22.13-33.79A12%2C12%2C0%2C0%2C1%2C166.4%2C190c.07.13.15.26.23.38l10.68%2C16.31A8%2C8%2C0%2C0%2C0%2C192%2C202.31V144a74.84%2C74.84%2C0%2C0%2C1%2C24%2C54.69V240a8%2C8%2C0%2C0%2C0%2C16%2C0V198.65A90.89%2C90.89%2C0%2C0%2C0%2C192%2C123.62ZM80%2C80H64A16%2C16%2C0%2C0%2C0%2C48%2C96V200a8%2C8%2C0%2C0%2C0%2C16%2C0V96H80a8%2C8%2C0%2C0%2C0%2C0-16Z%22/></svg>");
+      &::after {
+        content: 'GIVE';
+      }
+    }
+
+    &.inventory-control-close {
+      --icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23fff'%20stroke-width='3.6'%20stroke-linecap='square'%20stroke-linejoin='miter'><path%20d='M5.5%205.5L18.5%2018.5M18.5%205.5L5.5%2018.5'/></svg>");
+      color: $danger;
+      box-shadow: inset 0 0 0 1px rgba(255, 46, 110, 0.35);
+      &::after {
+        content: 'CLOSE';
+      }
+      &:hover {
+        background-color: rgba(255, 46, 110, 0.16);
+        box-shadow: inset 0 0 0 1px rgba(255, 46, 110, 0.65), 0 0 16px rgba(255, 46, 110, 0.28);
+      }
     }
   }
 }
 
+// --------------------------------------------------------- controls modal --
 .useful-controls-dialog {
-  background-color: $mainColor;
+  @include panel;
+  // the one surface that gets backdrop-filter - it is small and modal
+  backdrop-filter: blur(14px);
+  clip-path: $chamfer;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: $textColor;
+  color: $text;
   width: 450px;
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  border-radius: 4px;
+  padding: 18px;
+  border-radius: 0;
   gap: 16px;
 }
 
 .useful-controls-dialog-overlay {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(4, 6, 10, 0.62);
 }
 
 .useful-controls-dialog-title {
@@ -206,7 +492,12 @@ body.inv-dragging {
   width: 100%;
   justify-content: space-between;
   align-items: center;
-  font-size: 18px;
+  font-family: $displayFont;
+  font-weight: 900;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: $accent;
 }
 
 .useful-controls-dialog-close {
@@ -216,10 +507,12 @@ body.inv-dragging {
   display: flex;
   justify-content: center;
   align-items: center;
-  border-radius: 4px;
-  fill: $textColor;
+  border-radius: 0;
+  fill: $textDim;
+  transition: fill 140ms ease, background-color 140ms ease;
   &:hover {
-    background-color: $secondaryColorHighlight;
+    background-color: $accentSoft;
+    fill: $accent;
     cursor: pointer;
   }
 }
@@ -227,32 +520,37 @@ body.inv-dragging {
 .useful-controls-content-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
+  font-size: 12px;
+  color: $textDim;
 }
 
 .divider {
   width: 100%;
   height: 1px;
-  background-color: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(to right, $accentLine, transparent);
 }
 
 .useful-controls-button {
   position: absolute !important;
   bottom: 25px;
   right: 25px;
-  transition: 200ms !important;
+  transition: box-shadow 160ms ease, background-color 160ms ease !important;
   border: none;
-  color: white;
+  color: $accent;
   width: 52px;
   height: 52px;
   display: flex;
   justify-content: center;
   align-items: center;
-  fill: white;
-  border-radius: 5% !important;
-  background-color: $secondaryColor !important;
+  fill: $accent;
+  border-radius: 0 !important;
+  clip-path: $chamfer;
+  background-color: $surface !important;
+  box-shadow: inset 0 0 0 1px $accentLine;
   &:hover {
-    background-color: $secondaryColorDark !important;
+    background-color: $accentSoft !important;
+    box-shadow: inset 0 0 0 1px $edgeHi, 0 0 18px rgba(0, 229, 255, 0.3);
     cursor: pointer;
   }
 }
@@ -261,24 +559,41 @@ body.inv-dragging {
   position: absolute !important;
   right: 8px;
   top: 8px;
-  border-radius: 2.5% !important;
-  color: grey !important;
+  border-radius: 0 !important;
+  color: $textDim !important;
 }
 
-// Dialog is used fro useful controls window
-
-// inventory grids
+// ---------------------------------------------------------------- grids ---
 .inventory-grid-wrapper {
   display: flex;
   flex-direction: column;
   gap: calc($gridGap * 2);
 }
+
 .inventory-grid-header-wrapper {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  align-items: flex-end;
+  padding: 2px 6px 5px;
+  border-bottom: 1px solid $accentLine;
+  // the header floats over gameplay - a scrim keeps it readable at noon
+  background: linear-gradient(to bottom, rgba(8, 11, 17, 0.85), rgba(8, 11, 17, 0.6));
   p {
-    font-size: 16px;
+    font-size: 12px;
+    font-family: $displayFont;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: $accent;
+    text-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+  }
+  p:last-child {
+    font-family: $mainFont;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: $textDim;
+    text-shadow: none;
   }
 }
 
@@ -291,30 +606,35 @@ body.inv-dragging {
   overflow-y: scroll;
 }
 
-// inventory slots
+// ---------------------------------------------------------------- slots ---
 .inventory-slot {
-  background-color: $secondaryColor;
+  background-color: $surfaceInset;
   background-repeat: no-repeat;
   background-position: center;
-  border-radius: 2.5%;
+  border-radius: 0;
+  clip-path: $chamfer;
   image-rendering: -webkit-optimize-contrast;
   position: relative;
-  background-size: 7vh;
-  color: $textColor;
-  border-color: rgba(0, 0, 0, 0.2);
-  border-style: inset;
-  border-width: 1px;
+  background-size: $iconSize;
+  color: $text;
+  border: none;
+  box-shadow: inset 0 0 0 1px $edge;
+  transition: box-shadow 140ms ease, transform 140ms ease;
+
+  &:hover {
+    box-shadow:
+      inset 0 0 0 1px $edgeHi,
+      inset 0 0 22px rgba(0, 229, 255, 0.12),
+      0 0 16px rgba(0, 229, 255, 0.22);
+  }
 }
 
 .inventory-slot-label-box {
-  background-color: $mainColor;
-  color: $textColor;
+  background: linear-gradient(to bottom, rgba(0, 229, 255, 0.1), rgba(4, 6, 10, 0.82));
+  color: $text;
   text-align: center;
-  border-bottom-left-radius: 0.25vh;
-  border-bottom-right-radius: 0.25vh;
-  border-top-color: rgba(0, 0, 0, 0.2);
-  border-top-style: inset;
-  border-top-width: 1px;
+  border-radius: 0;
+  border-top: 1px solid $accentLine;
 }
 
 .inventory-slot-label-text {
@@ -322,21 +642,25 @@ body.inv-dragging {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 2px 3px;
-  font-weight: 400;
+  padding: 3px 2px;
+  font-weight: 500;
   font-family: $mainFont;
-  font-size: 12px;
+  font-size: 9px;
+  letter-spacing: 0.02em;
 }
 
 .inventory-slot-number {
-  background-color: white;
-  color: black;
+  // outlined, not filled - the slot index is reference information, it should
+  // not out-shout the item it labels
+  background: rgba(4, 6, 10, 0.72);
+  color: $accent;
   height: 12px;
-  border-top-left-radius: 0.25vh;
-  border-bottom-right-radius: 0.25vh;
-  padding: 3px;
-  font-size: 12px;
+  border-radius: 0;
+  padding: 3px 5px;
+  font-size: 10px;
+  font-weight: 500;
   font-family: $mainFont;
+  box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0.4);
 }
 
 .item-slot-wrapper {
@@ -345,7 +669,7 @@ body.inv-dragging {
   justify-content: space-between;
   height: 100%;
   p {
-    font-size: 12px;
+    font-size: 11px;
   }
 }
 
@@ -365,9 +689,15 @@ body.inv-dragging {
   flex-direction: row;
   align-self: flex-end;
   padding: 3px;
-  gap: 3px;
+  gap: 4px;
   p {
-    font-size: 12px;
+    font-size: 10px;
+    font-weight: 500;
+    color: $text;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    // item art sits behind this - the shadow keeps it legible on any icon
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
   }
 }
 
@@ -378,8 +708,10 @@ body.inv-dragging {
   align-items: center;
   padding-right: 3px;
   p {
-    font-size: 14px;
-    text-shadow: 0.1vh 0.1vh 0 rgba(0, 0, 0, 0.7);
+    font-size: 12px;
+    font-weight: 700;
+    color: $ok;
+    text-shadow: 0 0 10px rgba(45, 227, 138, 0.5);
   }
 }
 
@@ -389,27 +721,31 @@ body.inv-dragging {
   justify-content: flex-end;
   padding-right: 3px;
   p {
-    font-size: 14px;
-    text-shadow: 0.1vh 0.1vh 0 rgba(0, 0, 0, 0.7);
+    font-size: 12px;
+    font-weight: 700;
+    color: $warn;
+    text-shadow: 0 0 10px rgba(255, 176, 32, 0.45);
   }
 }
 
+// -------------------------------------------------------------- tooltip ---
 .tooltip-wrapper {
   pointer-events: none;
   display: flex;
-  background-color: $mainColor;
-  width: 200px;
-  padding: 8px;
+  @include panel;
+  clip-path: $chamfer;
+  width: 220px;
+  padding: 10px 12px;
   flex-direction: column;
-  min-width: 200px;
-  color: $textColor;
+  min-width: 220px;
+  color: $textDim;
   font-family: $mainFont;
-  border-radius: 4px;
-  border-color: rgba(0, 0, 0, 0.2);
-  border-style: inset;
-  border-width: 1px;
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+  @include scanlines(0.035);
   p {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
   }
 }
@@ -419,9 +755,22 @@ body.inv-dragging {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid $accentLine;
   p {
-    font-size: 15px;
-    font-weight: 400;
+    font-size: 13px;
+    font-family: $displayFont;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: $text;
+  }
+  p:last-child {
+    font-family: $mainFont;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: $accent;
   }
 }
 
@@ -430,16 +779,18 @@ body.inv-dragging {
   flex-direction: row;
   align-items: center;
   justify-content: center;
+  color: $accent;
   svg {
     padding-right: 3px;
+    fill: $accent;
   }
   p {
-    font-size: 14px;
+    font-size: 12px;
   }
 }
 
 .tooltip-ingredients {
-  padding-top: 5px;
+  padding-top: 6px;
 }
 
 .tooltip-ingredient {
@@ -449,15 +800,15 @@ body.inv-dragging {
   img {
     width: 28px;
     height: 28px;
-    padding-right: 5px;
+    padding-right: 6px;
   }
 }
 
-// hotbar
+// --------------------------------------------------------------- hotbar ---
 .hotbar-container {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   justify-content: center;
   width: 100%;
   position: absolute;
@@ -476,13 +827,12 @@ body.inv-dragging {
   justify-content: space-between;
 }
 
-// item notifications
-
+// -------------------------------------------------------- notifications ---
 .item-notification-container {
   display: flex;
   overflow-x: scroll;
   flex-wrap: nowrap;
-  gap: 2px;
+  gap: 3px;
   position: absolute;
   bottom: 20vh;
   left: 50%;
@@ -493,17 +843,18 @@ body.inv-dragging {
 
 .item-notification-action-box {
   width: 100%;
-  color: $textColor;
-  background-color: $secondaryColor;
+  color: #04060a;
+  background: $accent;
   text-transform: uppercase;
   text-align: center;
-  border-top-left-radius: 0.25vh;
-  border-top-right-radius: 0.25vh;
-  font-family: $mainFont;
+  border-radius: 0;
+  font-family: $displayFont;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.45);
   p {
-    font-size: 11px;
-    padding: 2px;
-    font-weight: 600;
+    font-size: 10px;
+    padding: 3px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
   }
 }
 
@@ -513,27 +864,38 @@ body.inv-dragging {
   width: $gridSize;
 }
 
+// ----------------------------------------------------------------- bars ---
 .durability-bar {
-  background: rgba(0, 0, 0, 0.5);
+  background: $surfaceInset;
   height: 3px;
   overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
 }
 
 .weight-bar {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px inset rgba(0, 0, 0, 0.1);
+  background: $surfaceInset;
+  border: 1px solid $edge;
   height: 0.8vh;
-  border-radius: 5%;
+  border-radius: 0;
   overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+
+  // upstream sets the fill width inline; give whatever it renders a neon look
+  > div {
+    background: linear-gradient(to right, $accent, #7c3aed) !important;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.55);
+  }
 }
 
+// ----------------------------------------------------------- transitions ---
+// transform/opacity only - never layout properties
 .transition-fade-enter {
   opacity: 0;
 }
 
 .transition-fade-enter-active {
   opacity: 1;
-  transition: opacity 200ms;
+  transition: opacity 160ms ease-out;
 }
 
 .transition-fade-exit {
@@ -542,7 +904,7 @@ body.inv-dragging {
 
 .transition-fade-exit-active {
   opacity: 0;
-  transition: opacity 200ms;
+  transition: opacity 160ms ease-in;
 }
 
 .transition-slide-up-enter {
@@ -551,7 +913,7 @@ body.inv-dragging {
 
 .transition-slide-up-enter-active {
   transform: translateY(0px);
-  transition: all 200ms;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .transition-slide-up-exit {
@@ -560,5 +922,12 @@ body.inv-dragging {
 
 .transition-slide-up-exit-active {
   transform: translateY(200px);
-  transition: all 200ms;
+  transition: transform 180ms ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
