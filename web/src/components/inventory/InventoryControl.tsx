@@ -48,6 +48,15 @@ const InventoryControl: React.FC = () => {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) =>
     commitValue(event.target.value, event.target.selectionStart ?? 0);
 
+  /** Nudge the amount without retyping it. Clamped at zero; there is no upper
+   *  bound available here - this component knows the amount, not the stack size
+   *  of whatever slot is selected. */
+  const step = (delta: number) => {
+    const num = Math.max(0, (parseInt(digitsOnly(value), 10) || 0) + delta);
+    setValue(formatAmount(num));
+    dispatch(setItemAmount(num));
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const el = event.currentTarget;
     const pos = el.selectionStart ?? 0;
@@ -82,15 +91,31 @@ const InventoryControl: React.FC = () => {
       <UsefulControls infoVisible={infoVisible} setInfoVisible={setInfoVisible} />
       <div className="inventory-control">
         <div className="inventory-control-wrapper">
-          <input
-            className="inventory-control-input"
-            type="text"
-            ref={inputRef}
-            value={value}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            min={0}
-          />
+          <div className="inventory-control-stepper">
+            <button
+              className="inventory-control-step inventory-control-step-down"
+              type="button"
+              tabIndex={-1}
+              aria-label="decrease"
+              onClick={() => step(-1)}
+            />
+            <input
+              className="inventory-control-input"
+              type="text"
+              ref={inputRef}
+              value={value}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              min={0}
+            />
+            <button
+              className="inventory-control-step inventory-control-step-up"
+              type="button"
+              tabIndex={-1}
+              aria-label="increase"
+              onClick={() => step(1)}
+            />
+          </div>
           <button
             className="inventory-control-button inventory-control-use"
             ref={(el) => {
