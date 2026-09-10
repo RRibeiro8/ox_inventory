@@ -664,6 +664,19 @@ body.inv-dragging {
 }
 
 .inventory-grid-container {
+  // EXPERIMENT for overextended/ox_inventory#1853 (dragging lags after
+  // scrolling; closed upstream as not planned).
+  //
+  // Mechanism: a scrolled container can lose its own compositing layer, so the
+  // browser repaints it as the fixed-position drag preview passes over. Keeping
+  // it promoted and containing its paint should stop that.
+  //
+  // Costs a little GPU memory. If it does not help in-game, delete these two
+  // lines - headless Chromium cannot reproduce the CEF cost, so this is
+  // untested against the real symptom.
+  will-change: transform;
+  contain: paint;
+
   display: grid;
   height: $containerSize;
   grid-template-columns: repeat($gridCols, $gridSize);
