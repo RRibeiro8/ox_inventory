@@ -210,7 +210,9 @@ button:active {
   backface-visibility: hidden;
   clip-path: $chamfer;
   background-color: $surfaceSolid;
-  box-shadow: 0 0 0 1px $edgeHi, 0 0 18px rgba(0, 229, 255, 0.45);
+  // moves with the cursor every frame, so no blurred shadow: a crisp ring
+  // costs nothing to repaint, an 18px blur costs a lot
+  box-shadow: 0 0 0 2px $edgeHi;
 }
 
 body.inv-dragging {
@@ -226,6 +228,14 @@ body.inv-dragging {
   // but taking it out of hit-testing entirely means the two can never argue.
   .inventory-control-progress {
     pointer-events: none;
+  }
+
+  // Nothing hovers while an item is in flight. Dragging across the grid would
+  // otherwise fade a glow in and out on every slot the cursor crosses, and the
+  // player is watching the item, not the slot borders.
+  .inventory-slot::before {
+    opacity: 0 !important;
+    transition: none;
   }
 }
 
@@ -675,13 +685,28 @@ body.inv-dragging {
   color: $text;
   border: none;
   box-shadow: inset 0 0 0 1px $edge;
-  transition: box-shadow 140ms ease, transform 140ms ease;
 
-  &:hover {
+  // The hover glow lives on a pseudo-element and fades with OPACITY.
+  // Transitioning box-shadow on the slot itself repaints a large blurred area,
+  // and dragging an item across the grid fires that on every slot it touches -
+  // which is exactly what made dragging stutter.
+  //
+  // The outer glow is gone deliberately: clip-path crops anything outside the
+  // slot, so it was paying for a blur that could never be seen.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 140ms ease;
     box-shadow:
       inset 0 0 0 1px $edgeHi,
-      inset 0 0 22px rgba(0, 229, 255, 0.12),
-      0 0 16px rgba(0, 229, 255, 0.22);
+      inset 0 0 18px rgba(0, 229, 255, 0.14);
+  }
+
+  &:hover::before {
+    opacity: 1;
   }
 }
 
