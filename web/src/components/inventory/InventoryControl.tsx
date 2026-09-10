@@ -61,13 +61,29 @@ const InventoryControl: React.FC = () => {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) =>
     commitValue(event.target.value, event.target.selectionStart ?? 0);
 
-  /** Nudge the amount without retyping it. Clamped at zero; there is no upper
-   *  bound available here - this component knows the amount, not the stack size
-   *  of whatever slot is selected. */
-  const step = (delta: number) => {
-    const num = Math.max(0, (parseInt(digitsOnly(value), 10) || 0) + delta);
+  const applyAmount = (num: number) => {
     setValue(formatAmount(num));
     dispatch(setItemAmount(num));
+  };
+
+  /** Nudge the amount without retyping it. Clamped at zero. */
+  const step = (delta: number) => applyAmount(Math.max(0, (parseInt(digitsOnly(value), 10) || 0) + delta));
+
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  /** Drag the fill bar to scrub the amount across the largest stack held.
+   *  Lands on 1..maxCount rather than 0..maxCount: 0 is the "all" sentinel, and
+   *  putting "everything" at the far LEFT of a slider would read as nonsense.
+   *  Type 0 to get the sentinel back. */
+  const scrubTo = (clientX: number) => {
+    const el = trackRef.current;
+    if (!el || maxCount === 0) return;
+
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0) return;
+
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    applyAmount(Math.max(1, Math.round(ratio * maxCount)));
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -130,7 +146,27 @@ const InventoryControl: React.FC = () => {
                 onClick={() => step(1)}
               />
             </div>
-            <div className="inventory-control-progress" data-full={fillRatio >= 1 || undefined}>
+            <div
+              className="inventory-control-progress"
+              ref={trackRef}
+              role="slider"
+              aria-label="amount"
+              aria-valuemin={0}
+              aria-valuemax={maxCount}
+              aria-valuenow={itemAmount}
+              data-full={fillRatio >= 1 || undefined}
+              data-disabled={maxCount === 0 || undefined}
+              onPointerDown={(event) => {
+                if (maxCount === 0) return;
+                event.currentTarget.setPointerCapture(event.pointerId);
+                scrubTo(event.clientX);
+              }}
+              onPointerMove={(event) => {
+                // primary button still held - pointer capture keeps events
+                // coming even once the cursor leaves the track
+                if (event.buttons & 1) scrubTo(event.clientX);
+              }}
+            >
               <div
                 className="inventory-control-progress-fill"
                 style={{ transform: `scaleX(${fillRatio})` }}
