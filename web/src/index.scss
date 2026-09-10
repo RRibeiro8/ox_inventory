@@ -533,8 +533,10 @@ body.inv-dragging {
 // --------------------------------------------------------- controls modal --
 .useful-controls-dialog {
   @include panel;
-  // the one surface that gets backdrop-filter - it is small and modal
-  backdrop-filter: blur(14px);
+  // NO backdrop-filter here. On a transparent NUI page there is nothing behind
+  // the element to sample, so CEF blurs transparent black and paints an opaque
+  // black rectangle the size of the element plus its blur radius. Confirmed in
+  // game on the character screen; @include panel is already near-opaque.
   clip-path: $chamfer;
   position: absolute;
   top: 50%;
