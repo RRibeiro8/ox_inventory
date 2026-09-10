@@ -220,6 +220,13 @@ body.inv-dragging {
   .item-slot-wrapper {
     pointer-events: none;
   }
+
+  // An item drag passes over the amount slider with the button held. The
+  // component already refuses to scrub unless the drag started on the track,
+  // but taking it out of hit-testing entirely means the two can never argue.
+  .inventory-control-progress {
+    pointer-events: none;
+  }
 }
 
 // -------------------------------------------------------------- layout ----

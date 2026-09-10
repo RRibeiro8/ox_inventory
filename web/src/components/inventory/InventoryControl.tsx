@@ -70,6 +70,10 @@ const InventoryControl: React.FC = () => {
   const step = (delta: number) => applyAmount(Math.max(0, (parseInt(digitsOnly(value), 10) || 0) + delta));
 
   const trackRef = useRef<HTMLDivElement>(null);
+  // Only a drag that STARTED on the track may scrub. Checking "is a button
+  // held" is not enough: dragging an item across the screen passes over this
+  // element with the button down and would otherwise rewrite the amount.
+  const scrubbingRef = useRef(false);
 
   /** Drag the fill bar to scrub the amount across the largest stack held.
    *  Lands on 1..maxCount rather than 0..maxCount: 0 is the "all" sentinel, and
@@ -157,14 +161,24 @@ const InventoryControl: React.FC = () => {
               data-full={fillRatio >= 1 || undefined}
               data-disabled={maxCount === 0 || undefined}
               onPointerDown={(event) => {
-                if (maxCount === 0) return;
+                if (maxCount === 0 || event.button !== 0) return;
+                scrubbingRef.current = true;
                 event.currentTarget.setPointerCapture(event.pointerId);
                 scrubTo(event.clientX);
               }}
               onPointerMove={(event) => {
-                // primary button still held - pointer capture keeps events
-                // coming even once the cursor leaves the track
-                if (event.buttons & 1) scrubTo(event.clientX);
+                // pointer capture keeps events coming once the cursor leaves
+                // the track, but only for a drag we started
+                if (scrubbingRef.current && event.buttons & 1) scrubTo(event.clientX);
+              }}
+              onPointerUp={() => {
+                scrubbingRef.current = false;
+              }}
+              onPointerCancel={() => {
+                scrubbingRef.current = false;
+              }}
+              onLostPointerCapture={() => {
+                scrubbingRef.current = false;
               }}
             >
               <div
